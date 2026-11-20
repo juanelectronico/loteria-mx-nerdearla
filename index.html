@@ -1,1 +1,301 @@
 
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lotería MX</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #171329;
+  color: #fff;
+  text-align: center;
+}
+
+header { margin: 15px 0 25px; }
+
+h1 {
+  color: #f8c75e;
+  font-size: 38px;
+  margin: 5px;
+}
+
+.subtitle { color: #c9c2dc; }
+
+.panel {
+  max-width: 600px;
+  margin: auto;
+  background: #26213d;
+  border: 1px solid #51466e;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+#currentCard {
+  min-height: 145px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #fff8e9;
+  color: #241d36;
+  border-radius: 14px;
+  margin-bottom: 15px;
+}
+
+#currentEmoji { font-size: 65px; }
+#currentName { font-size: 23px; font-weight: bold; }
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 5px;
+}
+
+.primary {
+  background: #f3bd4e;
+  color: #241d36;
+}
+
+.secondary {
+  background: #51466e;
+  color: white;
+}
+
+#counter { color: #ddd4ef; margin: 12px; }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.cell {
+  background: #fff8e9;
+  color: #241d36;
+  border-radius: 9px;
+  padding: 9px 3px;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  border: 3px solid transparent;
+  cursor: pointer;
+}
+
+.cell span { font-size: 35px; }
+
+.cell.marked {
+  background: #d9f3d8;
+  border-color: #36a56a;
+}
+
+#message {
+  min-height: 28px;
+  color: #f8c75e;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+footer {
+  color: #aaa1bd;
+  font-size: 12px;
+  margin: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎴 LOTERÍA MX</h1>
+  <p class="subtitle">¡Que comience el juego!</p>
+</header>
+
+<main class="panel">
+
+  <h2>La carta que salió</h2>
+
+  <div id="currentCard">
+    <div id="currentEmoji">🎴</div>
+    <div id="currentName">¿Quién será?</div>
+  </div>
+
+  <button class="primary" onclick="drawCard()">
+    ¡SACAR CARTA!
+  </button>
+
+  <button class="secondary" onclick="newGame()">
+    Nueva partida
+  </button>
+
+  <p id="counter">Cartas cantadas: 0 / 24</p>
+
+  <h2>Tu tablero</h2>
+  <p class="subtitle">Toca las cartas que vayan saliendo.</p>
+
+  <div class="board" id="board"></div>
+
+  <div id="message"></div>
+
+</main>
+
+<footer>
+  Lotería MX · Hecho con sabor mexicano 🇲🇽
+</footer>
+
+<script>
+const cards = [
+  ["🌞","El Sol"],
+  ["🌙","La Luna"],
+  ["⭐","La Estrella"],
+  ["🌵","El Nopal"],
+  ["🦜","El Cotorro"],
+  ["🌹","La Rosa"],
+  ["🐓","El Gallo"],
+  ["🎸","La Música"],
+  ["🦋","La Mariposa"],
+  ["🐟","El Pescado"],
+  ["🌳","El Árbol"],
+  ["👑","La Corona"],
+  ["💀","La Calavera"],
+  ["🌮","El Taco"],
+  ["🕊️","La Paloma"],
+  ["🐸","La Rana"],
+  ["🍉","La Sandía"],
+  ["🚂","El Tren"],
+  ["🎩","El Sombrero"],
+  ["❤️","El Corazón"],
+  ["🔥","El Fuego"],
+  ["🌽","El Maíz"],
+  ["🐎","El Caballo"],
+  ["🪇","La Fiesta"]
+];
+
+let board = [];
+let deck = [];
+let drawn = [];
+let finished = false;
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+function newGame() {
+  board = shuffle(cards).slice(0, 16).map(card => ({
+    card,
+    marked: false
+  }));
+
+  deck = shuffle(cards);
+  drawn = [];
+  finished = false;
+
+  document.getElementById("currentEmoji").textContent = "🎴";
+  document.getElementById("currentName").textContent = "¿Quién será?";
+  document.getElementById("message").textContent = "";
+
+  renderBoard();
+  updateCounter();
+}
+
+function renderBoard() {
+  const container = document.getElementById("board");
+  container.innerHTML = "";
+
+  board.forEach((item, index) => {
+    const cell = document.createElement("div");
+    cell.className = "cell" + (item.marked ? " marked" : "");
+
+    cell.innerHTML =
+      "<span>" + item.card[0] + "</span>" +
+      "<div>" + item.card[1] + "</div>";
+
+    cell.onclick = () => markCell(index);
+    container.appendChild(cell);
+  });
+}
+
+function drawCard() {
+  if (finished) return;
+
+  if (deck.length === 0) {
+    document.getElementById("message").textContent =
+      "¡Se acabaron las cartas!";
+    return;
+  }
+
+  const card = deck.pop();
+  drawn.push(card);
+
+  document.getElementById("currentEmoji").textContent = card[0];
+  document.getElementById("currentName").textContent = card[1];
+
+  updateCounter();
+}
+
+function markCell(index) {
+  if (finished) return;
+
+  const item = board[index];
+  const wasMarked = item.marked;
+
+  if (!wasMarked && !drawn.some(card => card[1] === item.card[1])) {
+    document.getElementById("message").textContent =
+      "Esa carta todavía no ha salido.";
+    return;
+  }
+
+  item.marked = !item.marked;
+  document.getElementById("message").textContent = "";
+
+  renderBoard();
+
+  if (checkWin()) {
+    finished = true;
+    document.getElementById("message").textContent =
+      "🎉 ¡LOTERÍA! ¡Tenemos ganador!";
+  }
+}
+
+function checkWin() {
+  const marked = board.map(item => item.marked);
+
+  for (let row = 0; row < 4; row++) {
+    if ([0,1,2,3].every(col => marked[row * 4 + col])) return true;
+  }
+
+  for (let col = 0; col < 4; col++) {
+    if ([0,1,2,3].every(row => marked[row * 4 + col])) return true;
+  }
+
+  if ([0,5,10,15].every(i => marked[i])) return true;
+  if ([3,6,9,12].every(i => marked[i])) return true;
+
+  return false;
+}
+
+function updateCounter() {
+  document.getElementById("counter").textContent =
+    "Cartas cantadas: " + drawn.length + " / 24";
+}
+
+newGame();
+</script>
+
+</body>
+</html>
